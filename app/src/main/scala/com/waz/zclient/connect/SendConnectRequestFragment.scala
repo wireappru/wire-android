@@ -45,7 +45,7 @@ import com.waz.zclient.participants.UserRequester
 import com.waz.zclient.ui.text.TypefaceTextView
 import com.waz.zclient.ui.views.ZetaButton
 import com.waz.zclient.utils.ContextUtils._
-import com.waz.zclient.utils.{GuestUtils, StringUtils, ViewUtils}
+import com.waz.zclient.utils.{GuestUtils, StringUtils, RichView}
 import com.waz.zclient.views.menus.{FooterMenu, FooterMenuCallback}
 import com.waz.zclient.{FragmentHelper, R}
 import org.threeten.bp.Instant
@@ -212,7 +212,7 @@ class SendConnectRequestFragment extends BaseFragment[SendConnectRequestFragment
       footerMenu.foreach(_.setVisibility(View.GONE))
       connectButton.setAlpha(0)
       connectButton.setVisibility(View.VISIBLE)
-      ViewUtils.fadeInView(connectButton, getInt(R.integer.framework_animation_duration_long))
+      connectButton.fadeIn(FiniteDuration(getInt(R.integer.framework_animation_duration_long), MILLISECONDS))
     }
   }
 }

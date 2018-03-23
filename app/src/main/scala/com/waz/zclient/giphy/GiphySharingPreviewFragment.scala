@@ -44,8 +44,9 @@ import com.waz.zclient.giphy.GiphyGridViewAdapter.ScrollGifCallback
 import com.waz.zclient.pages.BaseFragment
 import com.waz.zclient.pages.main.profile.views.{ConfirmationMenu, ConfirmationMenuListener}
 import com.waz.zclient.ui.utils.TextViewUtils
-import com.waz.zclient.utils.{ContextUtils, RichEditText, ViewUtils}
+import com.waz.zclient.utils.{ContextUtils, RichEditText}
 import com.waz.zclient.views.LoadingIndicatorView
+import com.waz.zclient.utils.RichView
 
 class GiphySharingPreviewFragment extends BaseFragment[GiphySharingPreviewFragment.Container]
   with FragmentHelper
@@ -72,9 +73,6 @@ class GiphySharingPreviewFragment extends BaseFragment[GiphySharingPreviewFragme
     case _ => NoImage()
   }
 
-  private val showView: View => Unit = ViewUtils.fadeInView
-  private val hideView: View => Unit = ViewUtils.fadeOutView
-
   private lazy val giphySearchResults = for {
     giphyService <- giphyService
     term <- searchTerm
@@ -86,14 +84,12 @@ class GiphySharingPreviewFragment extends BaseFragment[GiphySharingPreviewFragme
 
   private lazy val previewImage = returning(view[ImageView](R.id.giphy_preview)) { vh =>
     networkService.isOnline.onUi(isOnline => vh.foreach(_.setClickable(isOnline)))
-    isPreviewShown.map(isPreview => if (isPreview) showView else hideView)
-      .onUi(animate => vh.foreach(animate))
+    isPreviewShown.onUi(isPreview => vh.foreach(_.fade(isPreview)))
   }
 
   private lazy val giphyTitle = returning(view[TextView](R.id.ttv__giphy_preview__title)) { vh =>
     conversationController.currentConvName.onUi(text => vh.foreach(_.setText(text)))
-    isPreviewShown.map(isPreview => if (isPreview) showView else hideView)
-      .onUi(animate => vh.foreach(animate))
+    isPreviewShown.onUi(isPreview => vh.foreach(_.fade(isPreview)))
   }
 
   private lazy val confirmationMenu = returning(view[ConfirmationMenu](R.id.cm__giphy_preview__confirmation_menu)) { vh =>
@@ -106,7 +102,7 @@ class GiphySharingPreviewFragment extends BaseFragment[GiphySharingPreviewFragme
         }
       }
     }
-    isPreviewShown.map(isPreview => if (isPreview) showView else hideView).onUi(animate => vh.foreach(animate))
+    isPreviewShown.onUi(isPreview => vh.foreach(_.fade(isPreview)))
   }
 
   private lazy val toolbar = returning(view[Toolbar](R.id.t__giphy__toolbar)) { vh =>
@@ -120,8 +116,7 @@ class GiphySharingPreviewFragment extends BaseFragment[GiphySharingPreviewFragme
     }.onUi(icon => vh.foreach(_.setNavigationIcon(icon)))
   }
   private lazy val giphySearchEditText = returning(view[EditText](R.id.cet__giphy_preview__search)) { vh =>
-    isPreviewShown.map(isPreview => if (isPreview) hideView else showView)
-      .onUi(animate => vh.foreach(animate))
+    isPreviewShown.map(!_).onUi(isPreview => vh.foreach(_.fade(isPreview)))
   }
 
   private lazy val errorView = returning(view[TextView](R.id.ttv__giphy_preview__error)) { vh =>
@@ -136,10 +131,8 @@ class GiphySharingPreviewFragment extends BaseFragment[GiphySharingPreviewFragme
   }
 
   private lazy val recyclerView: ViewHolder[RecyclerView] = returning(view[RecyclerView](R.id.rv__giphy_image_preview)) { vh =>
-    isPreviewShown.map(isPreview => if (isPreview) hideView else showView)
-      .onUi(animate => vh.foreach(animate))
-    giphySearchResults.map(results => if (results.isEmpty) hideView else showView)
-      .onUi(animate => vh.foreach(animate))
+    isPreviewShown.map(!_).onUi(isPreview => vh.foreach(_.fade(isPreview)))
+    giphySearchResults.map(_.nonEmpty).onUi(isResult => vh.foreach(_.fade(isResult)))
   }
 
   private lazy val closeButton = returning(view[View](R.id.gtv__giphy_preview__close_button)) { vh =>
@@ -239,12 +232,12 @@ class GiphySharingPreviewFragment extends BaseFragment[GiphySharingPreviewFragme
     ZMessaging.getCurrentGlobal.trackingService.contribution(new ContributionEvent.Action("text")) //TODO use lazy val when in scala
     for {
       term <- searchTerm.head
-      gif <- selectedGif.head
+      gif  <- selectedGif.head
       msg =
         if (TextUtils.isEmpty(term)) getString(R.string.giphy_preview__message_via_random_trending)
         else getString(R.string.giphy_preview__message_via_search, term)
-      _ <- conversationController.sendMessage(msg)
-      _ <- conversationController.sendMessage(ImageAssetFactory.getImageAsset(gif.flatMap(_.source).get))
+      _    <- conversationController.sendMessage(msg)
+      _    <- conversationController.sendMessage(ImageAssetFactory.getImageAsset(gif.flatMap(_.source).get))
     } yield giphyController.close()
   }
 

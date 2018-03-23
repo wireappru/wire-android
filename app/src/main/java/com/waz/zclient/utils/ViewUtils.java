@@ -17,7 +17,6 @@
  */
 package com.waz.zclient.utils;
 
-import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Dialog;
@@ -30,16 +29,13 @@ import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.support.annotation.IdRes;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
 import android.support.v7.app.AlertDialog;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 
-
 public class ViewUtils {
-
 
     public static boolean isInPortrait(@NonNull Context context) { // still used in wire-ui
         return isInPortrait(context.getResources().getConfiguration());
@@ -118,68 +114,6 @@ public class ViewUtils {
         int[] location = new int[2];
         view.getLocationOnScreen(location);
         return new Point(location[0], location[1]);
-    }
-
-    public static void fadeInView(@Nullable final View view) {
-        fadeInView(view, 1, new ValueAnimator().getDuration(), 0);
-    }
-
-    public static void fadeInView(@Nullable final View view, long duration) {
-        fadeInView(view, 1, duration, 0);
-    }
-
-    public static void fadeInView(@Nullable final View view, final float targetAlpha, final long duration, final long startDelay) {
-        if (view == null) {
-            return;
-        }
-        view.animate()
-            .alpha(targetAlpha)
-            .setDuration(duration)
-            .setStartDelay(startDelay)
-            .withStartAction(new Runnable() {
-                @Override
-                public void run() {
-                    view.setVisibility(View.VISIBLE);
-                }
-            })
-            .start();
-    }
-
-    public static void fadeOutView(@Nullable final View view) {
-        fadeOutView(view, true);
-    }
-
-    public static void fadeOutView(@Nullable final View view, boolean setToGoneWithEndAction) {
-        fadeOutView(view, new ValueAnimator().getDuration(), 0, setToGoneWithEndAction);
-    }
-
-    public static void fadeOutView(@Nullable final View view, final long duration) {
-        fadeOutView(view, duration, 0);
-    }
-
-    public static void fadeOutView(@Nullable final View view, final long duration, final long startDelay) {
-        fadeOutView(view, duration, startDelay, true);
-    }
-
-    public static void fadeOutView(@Nullable final View view, final long duration, final long startDelay, final boolean setToGoneWithEndAction) {
-        if (view == null) {
-            return;
-        }
-        if (view.getVisibility() == View.GONE || view.getVisibility() == View.INVISIBLE) {
-            return;
-        }
-
-        view.animate()
-            .alpha(0)
-            .setDuration(duration)
-            .setStartDelay(startDelay)
-            .withEndAction(new Runnable() {
-                @Override
-                public void run() {
-                    view.setVisibility(setToGoneWithEndAction ? View.GONE : View.INVISIBLE);
-                }
-            })
-            .start();
     }
 
     public static void setMarginTop(View v, int topMargin) {

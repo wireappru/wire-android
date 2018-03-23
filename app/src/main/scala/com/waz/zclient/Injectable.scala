@@ -32,7 +32,6 @@ case class Singleton[T](fn: () => T) extends (() => T) {
 }
 
 trait Injector { self =>
-
   def binding[T: reflect.Manifest]: Option[() => T]
 
   private[zclient] val head = self

@@ -69,7 +69,7 @@ import com.waz.zclient.pages.main.pickuser.controller.IPickUserController
 import com.waz.zclient.participants.ParticipantsController
 import com.waz.zclient.preferences.PreferencesController
 import com.waz.zclient.tracking.{CrashController, GlobalTrackingController, UiTrackingController}
-import com.waz.zclient.utils.{BackStackNavigator, BackendPicker, Callback, UiStorage}
+import com.waz.zclient.utils.{BackStackNavigator, BackendPicker, Callback, LocalThumbnailCache, UiStorage}
 import com.waz.zclient.views.DraftMap
 import net.hockeyapp.android.Constants
 
@@ -147,6 +147,8 @@ object WireApplication {
     bind [PreferencesController]           to new PreferencesController()
     bind [ImageController]                 to new ImageController()
     bind [UserAccountsController]          to new UserAccountsController()
+
+    bind [LocalThumbnailCache]              to LocalThumbnailCache(ctx)
 
     bind [SharingController]               to new SharingController()
     bind [ConversationController]          to new ConversationController()

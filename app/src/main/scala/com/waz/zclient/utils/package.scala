@@ -116,6 +116,10 @@ package object utils {
 
     def setHeight(h: Int): Unit = setWidthAndHeight(h = Some(h))
 
+    def fade(fadeIn: Boolean, duration: FiniteDuration = 300.millis, startDelay: FiniteDuration = 0.seconds): Unit =
+      if (fadeIn) this.fadeIn(duration, startDelay)
+      else fadeOut(duration, startDelay)
+
     def fadeIn(duration: FiniteDuration = 300.millis, startDelay: FiniteDuration = 0.seconds, targetAlpha: Float = 1f): Unit =
       view.animate
         .alpha(targetAlpha)

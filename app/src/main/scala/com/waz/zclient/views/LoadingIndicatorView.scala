@@ -25,9 +25,8 @@ import android.widget.{FrameLayout, ProgressBar}
 import com.waz.threading.CancellableFuture
 import com.waz.zclient.ui.text.{GlyphTextView, TypefaceTextView}
 import com.waz.zclient.utils.ContextUtils._
-import com.waz.zclient.utils.{RichView, ViewUtils}
+import com.waz.zclient.utils.RichView
 import com.waz.zclient.{R, ViewHelper}
-
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
@@ -48,14 +47,14 @@ class LoadingIndicatorView(context: Context, attrs: AttributeSet, defStyle: Int)
       infiniteLoadingBarView.setVisible(true)
       progressLoadingBarView.setVisible(false)
       setBackgroundColor(Color.TRANSPARENT)
-      ViewUtils.fadeInView(LoadingIndicatorView.this)
+      LoadingIndicatorView.this.fadeIn()
     }
     case Spinner => () => if (setToVisible) {
       indeterminateSpinner.setVisible(true)
       infiniteLoadingBarView.setVisible(false)
       progressLoadingBarView.setVisible(false)
       setBackgroundColor(Color.TRANSPARENT)
-      ViewUtils.fadeInView(LoadingIndicatorView.this)
+      LoadingIndicatorView.this.fadeIn()
     }
     case SpinnerWithDimmedBackground(text) => () => if (setToVisible) {
       indeterminateSpinner.setVisible(true)
@@ -64,14 +63,14 @@ class LoadingIndicatorView(context: Context, attrs: AttributeSet, defStyle: Int)
       infiniteLoadingBarView.setVisible(false)
       progressLoadingBarView.setVisible(false)
       setBackgroundColor(backgroundColor)
-      ViewUtils.fadeInView(LoadingIndicatorView.this)
+      LoadingIndicatorView.this.fadeIn()
     }
     case ProgressLoadingBar => () => if (setToVisible) {
       indeterminateSpinner.setVisible(false)
       infiniteLoadingBarView.setVisible(false)
       progressLoadingBarView.setVisible(true)
       setBackgroundColor(Color.TRANSPARENT)
-      ViewUtils.fadeInView(LoadingIndicatorView.this)
+      LoadingIndicatorView.this.fadeIn()
     }
   }
 
@@ -108,7 +107,7 @@ class LoadingIndicatorView(context: Context, attrs: AttributeSet, defStyle: Int)
     Future {
       indeterminateSpinner.setVisible(false)
       indeterminateText.setVisible(false)
-      ViewUtils.fadeOutView(LoadingIndicatorView.this)
+      LoadingIndicatorView.this.fadeOut()
     }
   }
 
@@ -122,7 +121,7 @@ class LoadingIndicatorView(context: Context, attrs: AttributeSet, defStyle: Int)
       indeterminateSpinner.setVisible(false)
       indeterminateText.setVisible(false)
       indeterminateGlyph.setVisible(false)
-      ViewUtils.fadeOutView(LoadingIndicatorView.this)
+      LoadingIndicatorView.this.fadeOut()
     }
   }
 
