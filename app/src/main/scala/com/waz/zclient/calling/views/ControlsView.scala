@@ -49,7 +49,7 @@ class ControlsView(val context: Context, val attrs: AttributeSet, val defStyleAt
   setColumnCount(3)
   setRowCount(2)
 
-  private lazy val controller = inject[CallController]
+  private lazy val controller  = inject[CallController]
   private lazy val permissions = inject[PermissionsService]
 
   val onButtonClick: SourceStream[Unit] = EventStream[Unit]
@@ -73,13 +73,13 @@ class ControlsView(val context: Context, val attrs: AttributeSet, val defStyleAt
     isVideoBeingSent.onUi(button.setActivated)
 
     (for {
-      zms <- controller.callingZms
-      conv <- controller.conversation
-      isGroup <- Signal.future(zms.conversations.isGroupConversation(conv.id))
-      isTeam = zms.teamId.isDefined
-      incoming <- controller.isCallIncoming
+      zms         <- controller.callingZms
+      conv        <- controller.conversation
+      isGroup     <- Signal.future(zms.conversations.isGroupConversation(conv.id))
+      isTeam      =  zms.teamId.isDefined
+      incoming    <- controller.isCallIncoming
       established <- controller.isCallEstablished
-      showVideo <- controller.showVideoView
+      showVideo   <- controller.showVideoView
     } yield (established || incoming) && (showVideo || isTeam || !isGroup)).onUi(button.setEnabled)
   }
 
@@ -93,7 +93,7 @@ class ControlsView(val context: Context, val attrs: AttributeSet, val defStyleAt
     }
     Signal(controller.speakerButton.buttonState, isVideoBeingSent).onUi {
       case (buttonState, false) => button.setActivated(buttonState)
-      case (_, true) => button.setActivated(false)
+      case _                    => button.setActivated(false)
     }
   }
 
@@ -119,21 +119,24 @@ class ControlsView(val context: Context, val attrs: AttributeSet, val defStyleAt
   }
 
   private def accept(): Future[Unit] = async {
-      onButtonClick ! {}
-      val sendingVideo = await(controller.videoSendState.head) == VideoState.Started
-      val perms = await(permissions.requestPermissions(if (sendingVideo) Set(CAMERA, RECORD_AUDIO) else Set(RECORD_AUDIO)))
-      val cameraGranted = perms.exists(p => p.key.equals(CAMERA) && p.granted)
-      val audioGranted = perms.exists(p => p.key.equals(RECORD_AUDIO) && p.granted)
-      val callingConvId = await(controller.callConvId.head)
-      val callingZms = await(controller.callingZms.head)
+    onButtonClick ! {}
+    val sendingVideo  = await(controller.videoSendState.head) == VideoState.Started
+    val perms         = await(permissions.requestPermissions(if (sendingVideo) Set(CAMERA, RECORD_AUDIO) else Set(RECORD_AUDIO)))
+    val cameraGranted = perms.exists(p => p.key.equals(CAMERA) && p.granted)
+    val audioGranted  = perms.exists(p => p.key.equals(RECORD_AUDIO) && p.granted)
+    val callingConvId = await(controller.callConvId.head)
+    val callingZms    = await(controller.callingZms.head)
 
-      if (sendingVideo && !cameraGranted) controller.toggleVideo()
+    if (sendingVideo && !cameraGranted) controller.toggleVideo()
 
-      if (audioGranted) callingZms.calling.startCall(callingConvId, await(controller.isVideoCall.head))
-      else
-        showPermissionsErrorDialog(R.string.calling__cannot_start__title,
-          if (sendingVideo) R.string.calling__cannot_start__no_video_permission__message else R.string.calling__cannot_start__no_permission__message
-          ).flatMap(_ => callingZms.calling.endCall(callingConvId))
+    if (audioGranted)
+      callingZms.calling.startCall(callingConvId, await(controller.isVideoCall.head))
+    else
+      showPermissionsErrorDialog(
+        R.string.calling__cannot_start__title,
+        if (sendingVideo) R.string.calling__cannot_start__no_video_permission__message
+        else R.string.calling__cannot_start__no_permission__message
+      ).flatMap(_ => callingZms.calling.endCall(callingConvId))
   }
 
   private def leave(): Unit = {
@@ -153,9 +156,10 @@ class ControlsView(val context: Context, val attrs: AttributeSet, val defStyleAt
 
   private def video(): Future[Unit] = async {
     onButtonClick ! {}
-    val isVideoOn = await(controller.showVideoView.head)
-    val memberCount = await(controller.conversationMembers.map(_.size).head)
+    val isVideoOn            = await(controller.showVideoView.head)
+    val memberCount          = await(controller.conversationMembers.map(_.size).head)
     val hasCameraPermissions = await(permissions.requestAllPermissions(Set(CAMERA)))
+
     if (!isVideoOn && memberCount > CallController.VideoCallMaxMembers)
         showToast(R.string.too_many_people_video_toast)
     else if (!hasCameraPermissions)

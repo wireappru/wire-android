@@ -86,7 +86,7 @@ class SingleUserRowView(context: Context, attrs: AttributeSet, style: Int) exten
   def showArrow(show: Boolean): Unit = nextIndicator.setVisibility(if (show) View.VISIBLE else View.GONE)
 
   def setCallParticipantInfo(user: CallParticipantInfo): Unit = {
-    chathead.setUserId(user.userId)
+    chathead.setUserId(user.userId, user.zms)
     setTitle(user.displayName)
     setVerified(user.isVerified)
     subtitleView.setVisibility(View.GONE)

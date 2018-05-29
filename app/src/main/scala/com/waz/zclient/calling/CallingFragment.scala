@@ -77,7 +77,8 @@ abstract class UserVideoView(context: Context, val userId: UserId) extends Frame
 
   override def onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int): Unit = {
     super.onLayout(changed, left, top, right, bottom)
-    if (changed) imageView.setBackground(new BackgroundDrawable(pictureId, getContext, Dim2(right - left, bottom - top)))
+    if (changed)
+      imageView.setBackground(new BackgroundDrawable(pictureId, getContext, Dim2(right - left, bottom - top)))
   }
 
   val videoView: View
@@ -110,11 +111,10 @@ class OtherVideoView(context: Context, userId: UserId) extends UserVideoView(con
 
 class CallingFragment extends FragmentHelper {
 
+  private lazy val controller       = inject[CallController]
+  private lazy val themeController  = inject[ThemeController]
   private lazy val controlsFragment = ControlsFragment.newInstance
-
-  private lazy val controller = inject[CallController]
-  private lazy val themeController = inject[ThemeController]
-  private lazy val previewCardView = view[CardView](R.id.preview_card_view)
+  private lazy val previewCardView  = view[CardView](R.id.preview_card_view)
 
   private var viewMap = Map[UserId, UserVideoView]()
 
@@ -144,7 +144,12 @@ class CallingFragment extends FragmentHelper {
               verbose("Showing card preview")
               cardView.removeAllViews()
               v.removeView(selfView)
-              selfView.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+              selfView.setLayoutParams(
+                new FrameLayout.LayoutParams(
+                  ViewGroup.LayoutParams.MATCH_PARENT,
+                  ViewGroup.LayoutParams.MATCH_PARENT
+                )
+              )
               cardView.addView(selfView)
               cardView.setVisibility(View.VISIBLE)
             } else {
@@ -161,38 +166,35 @@ class CallingFragment extends FragmentHelper {
           case _ => true
         }.sortWith {
           case (_:SelfVideoView, _) => true
-          case (v1, v2) => v1.userId.str.hashCode > v2.userId.str.hashCode
+          case (v1, v2)             => v1.userId.str.hashCode > v2.userId.str.hashCode
         }
 
         gridViews.zipWithIndex.foreach { case (r, index) =>
           val (row, col, span) = index match {
             case 0 if !isVideoBeingSent && gridViews.size == 2 => (0, 0, 2)
-            case 0 => (0, 0, 1)
+            case 0                                             => (0, 0, 1)
             case 1 if !isVideoBeingSent && gridViews.size == 2 => (1, 0, 2)
-            case 1 => (0, 1, 1)
-            case 2 if gridViews.size == 3 => (1, 0, 2)
-            case 2 => (1, 0, 1)
-            case 3 => (1, 1, 1)
+            case 1                                             => (0, 1, 1)
+            case 2 if gridViews.size == 3                      => (1, 0, 2)
+            case 2                                             => (1, 0, 1)
+            case 3                                             => (1, 1, 1)
           }
           verbose(s"Span sizes: ($row, $col, $span)")
-          val params = new GridLayout.LayoutParams()
-          params.width = 0
-          params.height = 0
-          params.rowSpec = GridLayout.spec(row, 1, GridLayout.FILL, 1f)
-          params.columnSpec = GridLayout.spec(col, span, GridLayout.FILL, 1f)
-          r.setLayoutParams(params)
+          r.setLayoutParams(returning(new GridLayout.LayoutParams()) { params =>
+            params.width      = 0
+            params.height     = 0
+            params.rowSpec    = GridLayout.spec(row, 1, GridLayout.FILL, 1f)
+            params.columnSpec = GridLayout.spec(col, span, GridLayout.FILL, 1f)
+          })
 
-          if (r.getParent == null)
-            v.addView(r)
+          if (r.getParent == null) v.addView(r)
         }
 
         val viewsToRemove = viewMap.filter {
           case (uid, selfView) if uid == selfId => !gridViews.contains(selfView)
-          case (uId, _) => !videoUsers.contains(uId)
+          case (uId, _)                         => !videoUsers.contains(uId)
         }
-        viewsToRemove.foreach { case (_, view) =>
-          v.removeView(view)
-        }
+        viewsToRemove.foreach { case (_, view) => v.removeView(view) }
         viewMap = viewMap.filter { case (uId, _) => videoUsers.contains(uId) }
       }
     }
@@ -213,7 +215,8 @@ class CallingFragment extends FragmentHelper {
 
     videoGrid
 
-    getChildFragmentManager.beginTransaction
+    getChildFragmentManager
+      .beginTransaction
       .replace(R.id.controls_layout, controlsFragment, ControlsFragment.Tag)
       .commit
   }

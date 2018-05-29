@@ -72,22 +72,19 @@ class CallStartController(implicit inj: Injector, cxt: WireContext, ec: EventCon
 
   def startCall(account: UserId, conv: ConvId, withVideo: Boolean = false, forceOption: Boolean = false): Future[Unit] = {
     verbose(s"startCall: account: $account, conv: $conv")
-    if (PhoneUtils.getPhoneState(cxt) != PhoneState.IDLE) showErrorDialog(R.string.calling__cannot_start__title, R.string.calling__cannot_start__message)
+    if (PhoneUtils.getPhoneState(cxt) != PhoneState.IDLE)
+      showErrorDialog(R.string.calling__cannot_start__title, R.string.calling__cannot_start__message)
     else {
       for {
         curCallZms        <- callingZmsOpt.head
         curCall           <- currentCallOpt.head
         Some(newCallZms)  <- accounts.getZms(account)
         Some(newCallConv) <- newCallZms.convsStorage.get(conv)
-
-        ongoingCalls <- newCallZms.calling.availableCalls.head
-
-        acceptingCall = curCall.exists(c => c.convId == conv && c.account == account) //the call we're trying to start is the same as the current one
-        isJoiningCall = ongoingCalls.contains(conv)  //the call we're trying to start is ongoing in the background (note, this will also contain the incoming call)
-        _ = verbose(s"accepting? $acceptingCall, isJoiningCall?: $isJoiningCall, curCall: $curCall")
-
-        //End any active call if it is not the one we're trying to join, confirm with the user before ending. Only proceed on confirmed
-        (true, canceled) <- (curCallZms, curCall) match {
+        ongoingCalls      <- newCallZms.calling.availableCalls.head
+        acceptingCall     =  curCall.exists(c => c.convId == conv && c.account == account) //the call we're trying to start is the same as the current one
+        isJoiningCall     =  ongoingCalls.contains(conv)  //the call we're trying to start is ongoing in the background (note, this will also contain the incoming call)
+        _                 =  verbose(s"accepting? $acceptingCall, isJoiningCall?: $isJoiningCall, curCall: $curCall")
+        (true, canceled)  <- (curCallZms, curCall) match { //End any active call if it is not the one we're trying to join, confirm with the user before ending. Only proceed on confirmed
           case (Some(z), Some(c)) if !acceptingCall =>
             showConfirmationDialog(
               getString(R.string.calling_ongoing_call_title),
@@ -99,38 +96,33 @@ class CallStartController(implicit inj: Injector, cxt: WireContext, ec: EventCon
             }
           case _ => Future.successful((true, false))
         }
-
-        //ignore withVideo flag if call is incoming
-        curWithVideo <- if (curCall.isDefined && !canceled && !forceOption) isVideoCall.head else Future.successful(withVideo)
-        _ = verbose(s"curWithVideo: $curWithVideo")
-
-        //check network state, proceed if okay
-        true <- networkMode.head.flatMap {
-          case NetworkMode.OFFLINE              => showErrorDialog(R.string.alert_dialog__no_network__header, R.string.calling__call_drop__message).map(_ => false)
-          case NetworkMode._2G                  => showErrorDialog(R.string.calling__slow_connection__title, R.string.calling__slow_connection__message).map(_ => false)
-          case NetworkMode.EDGE if curWithVideo => showConfirmationDialog(getString(R.string.calling__slow_connection__title), getString(R.string.calling__video_call__slow_connection__message))
-          case _                                => Future.successful(true)
-        }
-
-        //confirm large groups with user when placing a new call in a group (don't ask for confirmation when accepting or joining call)
-        members <- conversationController.loadMembers(newCallConv.id)
-        true <-
+        curWithVideo      <- if (curCall.isDefined && !canceled && !forceOption) isVideoCall.head //ignore withVideo flag if call is incoming
+                             else Future.successful(withVideo)
+        _                 = verbose(s"curWithVideo: $curWithVideo")
+        true              <-
+          networkMode.head.flatMap {        //check network state, proceed if okay
+            case NetworkMode.OFFLINE              => showErrorDialog(R.string.alert_dialog__no_network__header, R.string.calling__call_drop__message).map(_ => false)
+            case NetworkMode._2G                  => showErrorDialog(R.string.calling__slow_connection__title, R.string.calling__slow_connection__message).map(_ => false)
+            case NetworkMode.EDGE if curWithVideo => showConfirmationDialog(getString(R.string.calling__slow_connection__title), getString(R.string.calling__video_call__slow_connection__message))
+            case _                                => Future.successful(true)
+          }
+        members           <- conversationController.loadMembers(newCallConv.id)
+        true              <-
           if (members.size > 5 && !acceptingCall && !isJoiningCall) //!acceptingCall is superfluous, but here for clarity
             showConfirmationDialog(
               getString(R.string.group_calling_title),
               getString(R.string.group_calling_message, members.size.toString),
               positiveRes = R.string.group_calling_confirm)
-          else Future.successful(true)
-
-        //check or request permissions
-        hasPerms <- inject[PermissionsService].requestAllPermissions(if (curWithVideo) Set(CAMERA, RECORD_AUDIO) else Set(RECORD_AUDIO))
-        _ <-
-        if (hasPerms) newCallZms.calling.startCall(newCallConv.id, curWithVideo, forceOption)
-        else showPermissionsErrorDialog(
-          R.string.calling__cannot_start__title,
-          if (curWithVideo) R.string.calling__cannot_start__no_video_permission__message else R.string.calling__cannot_start__no_permission__message
-        ).flatMap(_ => if (curCall.isDefined) newCallZms.calling.endCall(newCallConv.id) else Future.successful({}))
-        _ <- if (forceOption && !withVideo) Future(newCallZms.calling.setVideoSendState(newCallConv.id, Stopped)) else Future.successful({})
+          else
+            Future.successful(true)
+        hasPerms          <- inject[PermissionsService].requestAllPermissions(if (curWithVideo) Set(CAMERA, RECORD_AUDIO) else Set(RECORD_AUDIO)) //check or request permissions
+        _                 <-
+          if (hasPerms) newCallZms.calling.startCall(newCallConv.id, curWithVideo, forceOption)
+          else showPermissionsErrorDialog(
+            R.string.calling__cannot_start__title,
+            if (curWithVideo) R.string.calling__cannot_start__no_video_permission__message else R.string.calling__cannot_start__no_permission__message
+          ).flatMap(_ => if (curCall.isDefined) newCallZms.calling.endCall(newCallConv.id) else Future.successful({}))
+        _                 <- if (forceOption && !withVideo) Future(newCallZms.calling.setVideoSendState(newCallConv.id, Stopped)) else Future.successful({})
       } yield {}
     }.recover {
       case NonFatal(e) => warn("Failed to start call", e)

@@ -21,6 +21,7 @@ import android.content.Context
 import android.support.v7.widget.LinearLayoutManager.VERTICAL
 import android.support.v7.widget.{LinearLayoutManager, RecyclerView}
 import android.util.AttributeSet
+import com.waz.utils.events.EventStream
 import com.waz.zclient.calling.CallParticipantsAdapter
 import com.waz.zclient.{R, ViewHelper}
 
@@ -29,24 +30,25 @@ class CallParticipantsView(val context: Context, val attrs: AttributeSet, val de
   def this(context: Context) = this(context, null)
 
   private val adapter = new CallParticipantsAdapter()
-  val onShowAllClicked = adapter.onShowAllClicked
+
+  val onShowAllClicked: EventStream[Unit] = adapter.onShowAllClicked
 
   private val isScrollable =
-    context.getTheme
+    context
+      .getTheme
       .obtainStyledAttributes(attrs, R.styleable.CallParticipantsView, 0, 0)
       .getBoolean(R.styleable.CallParticipantsView_isScrollable, true)
 
   private val layoutManager =
-    if (isScrollable) {
+    if (isScrollable)
       new LinearLayoutManager(context, VERTICAL, false)
-    } else {
+    else
       new LinearLayoutManager(context, VERTICAL, false) {
         override def canScrollVertically: Boolean = false
       }
-    }
 
   setLayoutManager(layoutManager)
   setAdapter(adapter)
 
-  def setMaxRows(maxRows: Int) = adapter.setMaxRows(maxRows)
+  def setMaxRows(maxRows: Int): Unit = adapter.setMaxRows(maxRows)
 }

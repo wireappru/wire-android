@@ -22,14 +22,15 @@ import android.util.AttributeSet
 import android.widget.FrameLayout
 import com.waz.ZLog.ImplicitTag.implicitLogTag
 import com.waz.service.call.CallInfo.CallState.{OtherCalling, SelfConnected}
-import com.waz.utils.events.Signal
+import com.waz.utils.events.{EventStream, Signal}
 import com.waz.zclient.calling.controllers.CallController
 import com.waz.zclient.common.views.ChatheadView
 import com.waz.zclient.utils.ContextUtils.getDimenPx
 import com.waz.zclient.utils.RichView
 import com.waz.zclient.{R, ViewHelper}
 
-class CallingMiddleLayout(val context: Context, val attrs: AttributeSet, val defStyleAttr: Int) extends FrameLayout(context, attrs, defStyleAttr) with ViewHelper {
+class CallingMiddleLayout(val context: Context, val attrs: AttributeSet, val defStyleAttr: Int)
+  extends FrameLayout(context, attrs, defStyleAttr) with ViewHelper {
   import CallingMiddleLayout.CallDisplay
 
   def this(context: Context, attrs: AttributeSet) = this(context, attrs, 0)
@@ -37,15 +38,13 @@ class CallingMiddleLayout(val context: Context, val attrs: AttributeSet, val def
 
   inflate(R.layout.calling_middle_layout, this)
 
-  private val controller = inject[CallController]
-  import controller._
-
-  private lazy val chathead = findById[ChatheadView](R.id.call_chathead)
+  private lazy val controller   = inject[CallController]
+  private lazy val chathead     = findById[ChatheadView](R.id.call_chathead)
   private lazy val participants = findById[CallParticipantsView](R.id.call_participants)
 
-  lazy val onShowAllClicked = participants.onShowAllClicked
+  lazy val onShowAllClicked: EventStream[Unit] = participants.onShowAllClicked
 
-  Signal(callStateCollapseJoin, showVideoView, isGroupCall).map {
+  Signal(controller.callStateCollapseJoin, controller.showVideoView, controller.isGroupCall).map {
     case (_,                   false, false) => CallDisplay.Chathead
     case (Some(OtherCalling),  false, true)  => CallDisplay.Chathead
     case (Some(SelfConnected), _,     true)  => CallDisplay.Participants
@@ -55,11 +54,11 @@ class CallingMiddleLayout(val context: Context, val attrs: AttributeSet, val def
     participants.setVisible(display == CallDisplay.Participants)
   }
 
-  callerId.onUi(chathead.setUserId)
+  controller.callerId.onUi(chathead.setUserId)
 
   override def onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int): Unit = {
     super.onLayout(changed, l, t, r, b)
-    participants.setMaxRows((b - t) / getDimenPx(R.dimen.user_row_height))
+    if (changed) participants.setMaxRows((b - t) / getDimenPx(R.dimen.user_row_height))
   }
 
 }

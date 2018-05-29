@@ -29,6 +29,7 @@ import com.waz.service.call.CallInfo
 import com.waz.service.call.CallInfo.CallState.{SelfJoining, _}
 import com.waz.service.{AccountsService, GlobalModule, NetworkModeService, ZMessaging}
 import com.waz.threading.{CancellableFuture, Threading}
+import com.waz.utils._
 import com.waz.utils.events._
 import com.waz.zclient.calling.CallingActivity
 import com.waz.zclient.calling.controllers.CallController.CallParticipantInfo
@@ -36,11 +37,10 @@ import com.waz.zclient.common.controllers.ThemeController.Theme
 import com.waz.zclient.common.controllers.{SoundController, ThemeController}
 import com.waz.zclient.conversation.ConversationController
 import com.waz.zclient.utils.ContextUtils._
-import com.waz.zclient.utils.{ConversationMembersSignal, DeprecationUtils, UiStorage, UserSignal}
+import com.waz.zclient.utils.{ConversationMembersSignal, DeprecationUtils, UiStorage}
 import com.waz.zclient.{Injectable, Injector, R, WireContext}
 import org.threeten.bp.Instant
 
-import com.waz.utils._
 import scala.concurrent.duration._
 
 class CallController(implicit inj: Injector, cxt: WireContext, eventContext: EventContext) extends Injectable {
@@ -67,10 +67,9 @@ class CallController(implicit inj: Injector, cxt: WireContext, eventContext: Eve
 
   val currentCallOpt: Signal[Option[CallInfo]] = callingZmsOpt.flatMap {
     case Some(z) => z.calling.currentCall
-    case _ => Signal.const(None)
+    case _       => Signal.const(None)
   }
-  val currentCall = currentCallOpt.collect { case Some(c) => c }
-
+  val currentCall   = currentCallOpt.collect { case Some(c) => c }
   val callConvIdOpt = currentCallOpt.map(_.map(_.convId))
   val callConvId    = callConvIdOpt.collect { case Some(c) => c }
 
@@ -103,15 +102,16 @@ class CallController(implicit inj: Injector, cxt: WireContext, eventContext: Eve
   val participantIds = currentCall.map(_.others.toVector)
 
   val theme: Signal[Theme] = isVideoCall.flatMap {
-    case true => Signal.const(Theme.Dark)
+    case true  => Signal.const(Theme.Dark)
     case false => themeController.currentTheme
   }
 
-  def participantInfos(take: Option[Int] = None) =
+  def participantInfos(take: Option[Int] = None): Signal[Vector[CallParticipantInfo]] =
     for {
       ids         <- take.fold(participantIds)(t => participantIds.map(_.take(t)))
+      cZms        <- callingZms
+      users       <- cZms.usersStorage.listSignal(ids)
       videoStates <- allVideoReceiveStates
-      users       <- Signal.sequence(ids.map(UserSignal(_)):_*)
       teamId      <- callingZms.map(_.teamId)
     } yield
       users.map { u =>
@@ -121,7 +121,9 @@ class CallController(implicit inj: Injector, cxt: WireContext, eventContext: Eve
           u.getDisplayName,
           u.isGuest(teamId),
           u.isVerified,
-          videoStates.get(u.id).contains(VideoState.Started))
+          videoStates.get(u.id).contains(VideoState.Started),
+          Some(cZms)
+        )
       }
 
   val flowManager = callingZms.map(_.flowmanager)
@@ -149,11 +151,9 @@ class CallController(implicit inj: Injector, cxt: WireContext, eventContext: Eve
     case _ =>
   }
 
-  val cameraFailed = flowManager.flatMap(_.cameraFailedSig)
-
-  val userStorage = callingZms.map(_.usersStorage)
-  val prefs       = callingZms.map(_.prefs)
-
+  val cameraFailed   = flowManager.flatMap(_.cameraFailedSig)
+  val userStorage    = callingZms.map(_.usersStorage)
+  val prefs          = callingZms.map(_.prefs)
   val callingService = callingZms.map(_.calling).disableAutowiring()
 
   val callingServiceAndCurrentConvId =
@@ -163,8 +163,8 @@ class CallController(implicit inj: Injector, cxt: WireContext, eventContext: Eve
     } yield (cs, c)
 
 
-  val conversation = callingZms.zip(callConvId) flatMap { case (z, cId) => z.convsStorage.signal(cId) }
-  val conversationName = conversation.map(_.displayName)
+  val conversation        = callingZms.zip(callConvId) flatMap { case (z, cId) => z.convsStorage.signal(cId) }
+  val conversationName    = conversation.map(_.displayName)
   val conversationMembers = conversation.flatMap(conv => ConversationMembersSignal(conv.id))
 
   val otherUser = Signal(isGroupCall, userStorage, callConvId).flatMap {
@@ -175,8 +175,8 @@ class CallController(implicit inj: Injector, cxt: WireContext, eventContext: Eve
 
   private lazy val lastControlsClick = Signal[(Boolean, Instant)]() //true = show controls and set timer, false = hide controls
 
-  import com.waz.ZLog.verbose
   import com.waz.ZLog.ImplicitTag.implicitLogTag
+  import com.waz.ZLog.verbose
 
   lazy val controlsVisible =
     (for {
@@ -221,15 +221,15 @@ class CallController(implicit inj: Injector, cxt: WireContext, eventContext: Eve
     verbose(s"setVideoPause: $pause")
     for {
       true <- isVideoCall.head
-      st  <- videoSendState.head
-      cId <- callConvId.head
-      cs  <- callingService.head
+      st   <- videoSendState.head
+      cId  <- callConvId.head
+      cs   <- callingService.head
     } yield {
       import VideoState._
       val targetSt = st match {
         case Started if pause => Paused
         case Paused if !pause => Started
-        case _ => st
+        case _                => st
       }
       cs.setVideoSendState(cId, targetSt)
     }
@@ -263,8 +263,8 @@ class CallController(implicit inj: Injector, cxt: WireContext, eventContext: Eve
 
 
   (for {
-    v  <- isVideoCall
-    st <- callStateOpt
+    v            <- isVideoCall
+    st           <- callStateOpt
     callingShown <- callControlsVisible
   } yield (v, callingShown, st)) {
     case (true, _, _)                       => screenManager.setStayAwake()
@@ -288,7 +288,7 @@ class CallController(implicit inj: Injector, cxt: WireContext, eventContext: Eve
 
   val degradationWarningText = convDegraded.flatMap {
     case false => Signal(Option.empty[String])
-    case true =>
+    case true  =>
       (for {
         zms <- callingZms
         convId <- callConvId
@@ -418,5 +418,11 @@ private class ScreenManager(implicit injector: Injector) extends Injectable {
 
 object CallController {
   val VideoCallMaxMembers:Int = 4
-  case class CallParticipantInfo(userId: UserId, assetId: Option[AssetId], displayName: String, isGuest: Boolean, isVerified: Boolean, isVideoEnabled: Boolean)
+  case class CallParticipantInfo(userId: UserId,
+                                 assetId: Option[AssetId],
+                                 displayName: String,
+                                 isGuest: Boolean,
+                                 isVerified: Boolean,
+                                 isVideoEnabled: Boolean,
+                                 zms: Option[ZMessaging])
 }

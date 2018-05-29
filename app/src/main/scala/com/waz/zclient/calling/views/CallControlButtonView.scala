@@ -42,15 +42,15 @@ class CallControlButtonView(val context: Context, val attrs: AttributeSet, val d
   def this(context: Context, attrs: AttributeSet) = this(context, attrs, 0)
   def this(context: Context) = this(context, null)
 
-  private val themeController = inject[ThemeController]
+  private val themeController  = inject[ThemeController]
 
-  private val otherColor = Signal(Option.empty[ButtonColor])
+  private val otherColor       = Signal(Option.empty[ButtonColor])
 
-  private val enabledChanged = EventStream[Boolean]()
-  private val enabledSignal = RefreshingSignal(Future{ isEnabled }(Threading.Ui), enabledChanged)
+  private val enabledChanged   = EventStream[Boolean]()
+  private val enabledSignal    = RefreshingSignal(Future{ isEnabled }(Threading.Ui), enabledChanged)
 
   private val activatedChanged = EventStream[Boolean]()
-  private val activatedSignal = RefreshingSignal(Future{ isActivated }(Threading.Ui), activatedChanged)
+  private val activatedSignal  = RefreshingSignal(Future{ isActivated }(Threading.Ui), activatedChanged)
 
   inflate(R.layout.call_button_view)
 
@@ -61,32 +61,33 @@ class CallControlButtonView(val context: Context, val attrs: AttributeSet, val d
     returning { a.getDimensionPixelSize(R.styleable.CallControlButtonView_iconDimension, 0) }(_ => a.recycle())
   }.filter(_ != 0)
 
+  private val buttonLabelView  = findById[TypefaceTextView](R.id.text)
   private val buttonBackground = findById[FrameLayout](R.id.icon_background)
-  private val iconView = returning(findById[GenericStyleKitView](R.id.icon)) { icon =>
+  private val iconView         = returning(findById[GenericStyleKitView](R.id.icon)) { icon =>
     iconDimension.foreach { size =>
       icon.getLayoutParams.height = size
       icon.getLayoutParams.width = size
     }
   }
-  private val buttonLabelView = findById[TypefaceTextView](R.id.text)
 
   (for {
     otherColor <- otherColor
-    theme <- currentTheme.map(_.getOrElse(Theme.Light))
-  } yield {
-    import ButtonColor._
+    theme      <- currentTheme.map(_.getOrElse(Theme.Light))
+  } yield
     otherColor match {
-      case Some(Green) => getDrawable(R.drawable.selector__icon_button__background__green)
-      case Some(Red) => getDrawable(R.drawable.selector__icon_button__background__red)
-      case _ => getStyledDrawable(R.attr.callButtonBackground, themeController.getTheme(theme)).getOrElse(getDrawable(R.drawable.selector__icon_button__background__calling))
+      case Some(ButtonColor.Green) => getDrawable(R.drawable.selector__icon_button__background__green)
+      case Some(ButtonColor.Red)   => getDrawable(R.drawable.selector__icon_button__background__red)
+      case _  =>
+        getStyledDrawable(R.attr.callButtonBackground, themeController.getTheme(theme))
+          .getOrElse(getDrawable(R.drawable.selector__icon_button__background__calling))
     }
-  }).onUi(buttonBackground.setBackground(_))
+  ).onUi(buttonBackground.setBackground(_))
 
   (for {
     otherColor <- otherColor
-    theme <- currentTheme.map(_.getOrElse(Theme.Light))
-    enabled <- enabledSignal
-    activated <- activatedSignal
+    theme      <- currentTheme.map(_.getOrElse(Theme.Light))
+    enabled    <- enabledSignal
+    activated  <- activatedSignal
   } yield (otherColor, theme, enabled, activated)).onUi {
     case (Some(_), _, _, _) =>
       iconView.setColor(getColor(R.color.white))

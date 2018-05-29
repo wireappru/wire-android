@@ -43,8 +43,9 @@ class ControlsFragment extends FragmentHelper {
 
   private lazy val callingHeader = view[CallingHeader](R.id.calling_header)
 
-  private lazy val callingMiddle = view[CallingMiddleLayout](R.id.calling_middle)
+  private lazy val callingMiddle   = view[CallingMiddleLayout](R.id.calling_middle)
   private lazy val callingControls = view[ControlsView](R.id.controls_grid)
+
   private var subs = Set[Subscription]()
 
   override def onCreate(savedInstanceState: Bundle): Unit = {
@@ -62,8 +63,7 @@ class ControlsFragment extends FragmentHelper {
     super.onViewCreated(v, savedInstanceState)
 
     callingControls
-
-    callingMiddle // initializing it later than header and controls to reduce the number of height recalculations
+    callingMiddle // initializing it later than the header and controls to reduce the number of height recalculations
 
     controller.isCallActive.onUi {
       case false =>
@@ -73,23 +73,28 @@ class ControlsFragment extends FragmentHelper {
     }
 
     (for {
-      state <- controller.callState
-      incoming = state == CallState.SelfJoining || state == CallState.OtherCalling
+      state                 <- controller.callState
+      incoming              =  state == CallState.SelfJoining || state == CallState.OtherCalling
       Some(degradationText) <- controller.degradationWarningText
     } yield (incoming, degradationText)).onUi { case (incoming, degradationText) =>
-      val builder = new AlertDialog.Builder(getActivity)
-      builder
+      new AlertDialog.Builder(getActivity)
         .setTitle(R.string.calling_degraded_title)
         .setMessage(degradationText)
         .setCancelable(false)
-        .setPositiveButton(if (incoming) android.R.string.ok else R.string.calling_ongoing_call_start_anyway, new DialogInterface.OnClickListener {
-          override def onClick(dialog: DialogInterface, which: Int): Unit = controller.continueDegradedCall()
-        })
-        .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener {
-          override def onClick(dialog: DialogInterface, which: Int): Unit = controller.leaveCall()
-        })
-
-      builder.create().show()
+        .setPositiveButton(
+          if (incoming) android.R.string.ok else R.string.calling_ongoing_call_start_anyway,
+          new DialogInterface.OnClickListener {
+            override def onClick(dialog: DialogInterface, which: Int): Unit = controller.continueDegradedCall()
+          }
+        )
+        .setNegativeButton(
+          android.R.string.cancel,
+          new DialogInterface.OnClickListener {
+            override def onClick(dialog: DialogInterface, which: Int): Unit = controller.leaveCall()
+          }
+        )
+        .create()
+        .show()
     }
 
     callingHeader.foreach {
@@ -119,7 +124,7 @@ class ControlsFragment extends FragmentHelper {
 
     //we need to listen to clicks on the outer layout, so that we can set this.getView to gone.
     getView.getParent.asInstanceOf[View].onClick {
-      Option(getView).map(_.getVisibility != View.VISIBLE).foreach(controller.controlsClick)
+      Option(getView).map(!_.isVisible).foreach(controller.controlsClick)
     }
 
     callingMiddle.foreach(vh => subs += vh.onShowAllClicked.onUi { _ =>

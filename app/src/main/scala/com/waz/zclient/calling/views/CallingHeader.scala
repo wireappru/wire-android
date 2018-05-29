@@ -32,11 +32,11 @@ class CallingHeader(val context: Context, val attrs: AttributeSet, val defStyleA
 
   private val controller = inject[CallController]
 
-  lazy val nameView        = findById[TextView](R.id.ttv__calling__header__name)
-  lazy val subtitleView    = findById[TextView](R.id.ttv__calling__header__subtitle)
-  lazy val bitRateModeView = findById[TextView](R.id.ttv__calling__header__bitrate)
+  private lazy val nameView        = findById[TextView](R.id.ttv__calling__header__name)
+  private lazy val subtitleView    = findById[TextView](R.id.ttv__calling__header__subtitle)
+  private lazy val bitRateModeView = findById[TextView](R.id.ttv__calling__header__bitrate)
 
-  lazy val closeButton = findById[GlyphButton](R.id.calling_header_close)
+  lazy val closeButton: GlyphButton = findById[GlyphButton](R.id.calling_header_close)
 
   inflate(R.layout.calling_header, this)
 
@@ -44,7 +44,7 @@ class CallingHeader(val context: Context, val attrs: AttributeSet, val defStyleA
   controller.conversationName.onUi(nameView.setText)
 
   controller.cbrEnabled.map {
-    case true => getString(R.string.audio_message__constant_bit_rate)
+    case true  => getString(R.string.audio_message__constant_bit_rate)
     case false => ""
   }.onUi(bitRateModeView.setText)
 
