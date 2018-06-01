@@ -296,13 +296,15 @@
     <!-- Calling/voice -->
     <string name="calling__slow_connection__title">Slow Internet</string>
     <string name="calling__slow_connection__message">Your Internet connection is too slow to call right now. Please try again later.</string>
-    <string name="calling__cannot_start__title">Calling not available</string>
+    <string name="calling__cannot_start__title">Microphone required</string>
     <string name="calling__cannot_start__message">To call, hang up your current call.</string>
-    <string name="calling__cannot_start__no_permission__message">To call, grant permission to access the microphone.</string>
+    <string name="calling__cannot_start__no_permission__message">Go to Settings and allow Wire to access the microphone.</string>
+    <string name="calling__cannot_start__cancel__message">CANCEL</string>
+    <string name="calling__cannot_start__no_camera_permission__message">Wire doesn\'t have access to the camera</string>
     <string name="calling__cannot_start__ongoing_different_kind__title">%1$s is busy</string>
     <string name="calling__cannot_start__ongoing_different_kind__message">Try again later</string>
     <string name="calling__cannot_start__no_video_permission__message">To video call, grant permission to access the microphone and camera.</string>
-    <string name="calling__cannot_start__button_settings">Settings</string>
+    <string name="calling__cannot_start__button_settings">SETTINGS</string>
     <string name="calling__video_call__slow_connection__message">You might experience issues during the call</string>
     <string name="incoming__controls__incoming__decline">DECLINE</string>
     <string name="incoming__controls__incoming__accept">ACCEPT</string>

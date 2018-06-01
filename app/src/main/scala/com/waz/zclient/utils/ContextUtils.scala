@@ -212,8 +212,8 @@ object ContextUtils {
     new AlertDialog.Builder(cxt)
       .setTitle(titleRes)
       .setMessage(msgRes)
-      .setPositiveButton(ackRes, null)
-      .setNegativeButton(R.string.permissions_denied_dialog_settings, new DialogInterface.OnClickListener() {
+      .setNegativeButton(ackRes, null)
+      .setPositiveButton(R.string.permissions_denied_dialog_settings, new DialogInterface.OnClickListener() {
         def onClick(dialog: DialogInterface, which: Int): Unit =
           cxt.startActivity(returning(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", cxt.getPackageName, null)))(_.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)))
       })

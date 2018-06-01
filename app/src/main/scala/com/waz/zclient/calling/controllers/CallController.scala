@@ -18,11 +18,13 @@
 package com.waz.zclient.calling.controllers
 
 import android.os.PowerManager
+import android.Manifest.permission.CAMERA
 import com.waz.ZLog.ImplicitTag._
 import com.waz.ZLog._
 import com.waz.api.Verification
 import com.waz.avs.VideoPreview
 import com.waz.model.{AssetId, UserData, UserId}
+import com.waz.permissions.PermissionsService
 import com.waz.service.ZMessaging.clock
 import com.waz.service.call.Avs.VideoState
 import com.waz.service.call.CallInfo
@@ -55,6 +57,7 @@ class CallController(implicit inj: Injector, cxt: WireContext, eventContext: Eve
   val networkMode            = inject[NetworkModeService].networkMode
   val accounts               = inject[AccountsService]
   val themeController        = inject[ThemeController]
+  val permissions            = inject[PermissionsService]
 
   val callControlsVisible = Signal(false)
   //the zms of the account that currently has an active call (if any)
@@ -354,13 +357,14 @@ class CallController(implicit inj: Injector, cxt: WireContext, eventContext: Eve
     }
   }
 
-  def stateMessageText(userId: UserId): Signal[Option[String]] = Signal(callState, cameraFailed, allVideoReceiveStates.map(_.getOrElse(userId, Unknown))).map { vs =>
+  def stateMessageText(userId: UserId): Signal[Option[String]] = Signal(callState, cameraFailed, allVideoReceiveStates.map(_.getOrElse(userId, Unknown)), permissions.allPermissions(Set(CAMERA))).map { vs =>
     verbose(s"Message Text: $vs")
     (vs match {
-      case (SelfCalling,   true, _)             => Some(R.string.calling__self_preview_unavailable_long)
-      case (SelfConnected, _,    BadConnection) => Some(R.string.ongoing__poor_connection_message)
-      case (SelfConnected, _,    Paused)        => Some(R.string.video_paused)
-      case _                                    => None
+      case (SelfCalling,   true, _,             _) => Some(R.string.calling__self_preview_unavailable_long)
+      case (SelfConnected, _,    BadConnection, _) => Some(R.string.ongoing__poor_connection_message)
+      case (SelfConnected, _,    Paused,        _) => Some(R.string.video_paused)
+      case (OtherCalling,  _,    _,         false) => Some(R.string.calling__cannot_start__no_video_permission__message)
+      case _                                       => None
     }).map(getString)
   }
 
