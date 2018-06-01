@@ -20,7 +20,6 @@ package com.waz.zclient.messages.parts.footer
 import android.content.Context
 import com.waz.api.Message
 import com.waz.api.Message.Status
-import com.waz.model.ConversationData.ConversationType
 import com.waz.model.MessageData
 import com.waz.service.ZMessaging
 import com.waz.service.messages.MessageAndLikes
@@ -50,6 +49,7 @@ class FooterViewController(implicit inj: Injector, context: Context, ec: EventCo
   val selection = inject[ConversationController].messages
   val signals = inject[UsersController]
   val likesController = inject[LikesController]
+  val conversationController = inject[ConversationController]
 
   val opts = Signal[MsgBindOptions]()
   val messageAndLikes = Signal[MessageAndLikes]()
@@ -95,14 +95,15 @@ class FooterViewController(implicit inj: Injector, context: Context, ec: EventCo
 
   val timestampText = for {
     selfUserId  <- signals.selfUserId
-    convType    <- conv.map(_.convType)
+    convId      <- conv.map(_.id)
+    isGroup     <- Signal.future(conversationController.isGroup(convId))
     msg         <- message
     timeout     <- ephemeralTimeout
   } yield {
     val timestamp = ZTimeFormatter.getSingleMessageTime(context, DateTimeUtils.toDate(msg.time))
     timeout match {
       case Some(t)                          => ephemeralTimeoutString(timestamp, t)
-      case None if selfUserId == msg.userId => statusString(timestamp, msg, convType)
+      case None if selfUserId == msg.userId => statusString(timestamp, msg, isGroup)
       case None                             => timestamp
     }
   }
@@ -122,11 +123,11 @@ class FooterViewController(implicit inj: Injector, context: Context, ec: EventCo
 
   def onLikeClicked() = messageAndLikes.head.map { likesController.onLikeButtonClicked ! _ }
 
-  private def statusString(timestamp: String, m: MessageData, convType: ConversationType) =
+  private def statusString(timestamp: String, m: MessageData, isGroup: Boolean) =
     m.state match {
       case Status.PENDING => getString(R.string.message_footer__status__sending)
       case Status.SENT => getString(R.string.message_footer__status__sent, timestamp)
-      case Status.DELIVERED if convType == ConversationType.Group => getString(R.string.message_footer__status__sent, timestamp)
+      case Status.DELIVERED if isGroup => getString(R.string.message_footer__status__sent, timestamp)
       case Status.DELIVERED => getString(R.string.message_footer__status__delivered, timestamp)
       case Status.DELETED => getString(R.string.message_footer__status__deleted, timestamp)
       case Status.FAILED |
